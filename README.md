@@ -59,3 +59,33 @@ cp .env.example .env   # set LLM_PROVIDER, LEAD_INTEL_LLM_MODEL and TAVILY_API_K
 .venv/Scripts/python -m lead_intel --name "Acme Plumbing" --website https://acme.example --location "Austin, TX"
 .venv/Scripts/python -m pytest
 ```
+
+## Inbound enquiries (`lead_intel.inbound`)
+
+Separate from the outbound research/scoring above; it never uses Tavily or the 100-point score.
+
+```
+InboundEnquiry → extraction (LLM → Pydantic → grounding, date normalization) → EnquiryExtractionResult
+               → qualify_enquiry(result, BusinessConfig) → QualificationResult
+```
+
+`QualificationResult.stage` (precedence top to bottom):
+
+| Stage | Meaning |
+|---|---|
+| `escalated` | A human must handle it (see `escalations`). Never overridden by intent or completeness. |
+| `needs_information` | Ask the customer to supply or confirm something (see `clarifications`). |
+| `ready_for_next_step` | Information needed for the next operational step is complete and confirmed. **Not** a sales qualification. |
+
+- **Always escalate** (not configurable): failed extraction, human requested, scope concern, unsupported service.
+- **Configurable** (`escalation_policy`): `escalate_intents` (default: complaint, reschedule/cancel),
+  urgency (`escalate_on_urgency`, `urgent_keywords`), `min_intent_confidence`, non-bookable services.
+- **Urgency** is classified separately as `none` / `time_sensitive` / `urgent`. Evidence that is exactly a
+  configured `time_sensitive_phrases` entry (e.g. "asap") is scheduling haste and escalates only if
+  `escalate_on_time_sensitive` is set. No medical triage is performed.
+- Only **confirmed** information satisfies a required field. Inferred details, and channel profile names,
+  must be confirmed by the customer; a channel-supplied phone/email is a usable contact identifier, not an identity.
+- `intent_level` (`high` / `medium` / `low`) is reported for prioritisation and never changes the stage.
+- **Older configs** without these fields still load. They get the default `escalate_intents`
+  (complaint, reschedule/cancel now escalate) and no `time_sensitive_phrases`, so every urgency
+  signal, including "asap", stays `urgent` and escalates until phrases are configured.

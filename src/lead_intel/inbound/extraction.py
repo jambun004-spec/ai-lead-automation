@@ -66,7 +66,11 @@ def _confirmed_value(item: ExtractedText) -> str | None:
     return item.value if item.confidence is Confidence.CONFIRMED else None
 
 
-def _valid_phone(value: str) -> bool:
+def is_valid_email(value: str) -> bool:
+    return bool(_EMAIL.match(value))
+
+
+def is_valid_phone(value: str) -> bool:
     return 7 <= len(re.sub(r"\D", "", value)) <= 15
 
 
@@ -97,15 +101,16 @@ def process_extraction_output(
     # Contact details: confirmed and well-formed, or supplied by the channel itself.
     contact = extraction.contact
     email, phone = _confirmed_value(contact.email), _confirmed_value(contact.phone)
-    if email and not _EMAIL.match(email):
+    if email and not is_valid_email(email):
         ambiguities.append(f"email {email!r} does not look valid")
         email = None
-    if phone and not _valid_phone(phone):
+    if phone and not is_valid_phone(phone):
         ambiguities.append(f"phone {phone!r} does not look valid")
         phone = None
     channel = enquiry.channel_contact
     has_contact = bool(email or phone or (channel and (channel.email or channel.phone)))
-    has_name = bool(_confirmed_value(contact.name) or (channel and channel.name))
+    # A channel profile name is not a customer-confirmed name (it may be a nickname).
+    has_name = bool(_confirmed_value(contact.name))
 
     # Date/time: only the customer's own (confirmed) wording is resolved.
     dt_item = extraction.preferred_datetime_text

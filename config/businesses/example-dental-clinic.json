@@ -29,6 +29,9 @@
     "escalate_on_urgency": true,
     "min_intent_confidence": "inferred",
     "urgent_keywords": ["severe pain", "bleeding", "swelling", "emergency", "knocked out"],
-    "out_of_scope_topics": ["medical or clinical advice", "diagnosis", "medication or prescriptions"]
+    "out_of_scope_topics": ["medical or clinical advice", "diagnosis", "medication or prescriptions"],
+    "escalate_intents": ["complaint", "reschedule_or_cancel"],
+    "time_sensitive_phrases": ["asap", "as soon as possible", "soon", "earliest", "at the earliest", "earliest available"],
+    "escalate_on_time_sensitive": false
   }
 }

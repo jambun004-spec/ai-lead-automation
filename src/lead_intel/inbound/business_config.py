@@ -84,8 +84,34 @@ class EscalationPolicy(BaseModel):
     escalate_on_extraction_failure: Literal[True] = True
     escalate_on_urgency: bool = True
     min_intent_confidence: Confidence = Confidence.INFERRED
+    # Business-defined urgent wording (proposal 1.7 routing policy); a match is always urgent.
     urgent_keywords: list[str] = Field(default_factory=list)
     out_of_scope_topics: list[str] = Field(default_factory=list)
+    # Intents a human must always handle. Adds escalations; cannot remove the fixed ones above.
+    escalate_intents: list[Intent] = Field(
+        default_factory=lambda: [Intent.COMPLAINT, Intent.RESCHEDULE_OR_CANCEL]
+    )
+    # Wording that only expresses scheduling haste (e.g. "asap"). An urgency signal whose
+    # evidence is exactly one of these is time-sensitive rather than urgent.
+    time_sensitive_phrases: list[str] = Field(default_factory=list)
+    escalate_on_time_sensitive: bool = False
+
+    @field_validator("urgent_keywords", "out_of_scope_topics", "time_sensitive_phrases")
+    @classmethod
+    def _no_blank_entries(cls, values: list[str]) -> list[str]:
+        # A blank keyword would match every message.
+        cleaned = [v.strip() for v in values]
+        if any(not v for v in cleaned):
+            raise ValueError("entries must not be blank")
+        return cleaned
+
+    @model_validator(mode="after")
+    def _urgency_lists_disjoint(self) -> EscalationPolicy:
+        urgent = {k.casefold() for k in self.urgent_keywords}
+        overlap = sorted(p for p in self.time_sensitive_phrases if p.casefold() in urgent)
+        if overlap:
+            raise ValueError(f"phrases cannot be both urgent and merely time-sensitive: {overlap}")
+        return self
 
 
 class BusinessConfig(BaseModel):

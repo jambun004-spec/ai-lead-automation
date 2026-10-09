@@ -262,3 +262,10 @@ def test_inbound_does_not_load_outbound_scoring_or_search():
     )
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
     assert out.stdout.strip() == "[]"
+
+
+def test_channel_profile_name_does_not_satisfy_customer_name(config):
+    case = case_by_id("proposal-example-pricing-and-saturday")
+    enquiry = build_enquiry({**case, "channel_contact": {"phone": "+91 98765 43210", "name": "Asha"}})
+    result = process_extraction_output(enquiry, config, gold_json(case["id"]))
+    assert MissingInfo.CUSTOMER_NAME in result.missing_information

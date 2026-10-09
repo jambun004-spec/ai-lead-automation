@@ -57,6 +57,11 @@ class Settings(BaseModel):
     guardrail_max_retries: int = Field(default=2, ge=0, le=5)
     icp_description: str = Field(default=DEFAULT_ICP_DESCRIPTION, min_length=10)
 
+    # Supabase
+    supabase_url: str | None = None
+    supabase_anon_key: SecretStr | None = None
+
+
     @field_validator("llm_provider", "search_provider", mode="before")
     @classmethod
     def _normalise_provider(cls, value: object) -> object:
@@ -101,6 +106,8 @@ _ENV_MAP = {
     "tavily_max_results": "LEAD_INTEL_TAVILY_MAX_RESULTS",
     "guardrail_max_retries": "LEAD_INTEL_GUARDRAIL_MAX_RETRIES",
     "icp_description": "LEAD_INTEL_ICP_DESCRIPTION",
+    "supabase_url": "SUPABASE_URL",
+    "supabase_anon_key": "SUPABASE_ANON_KEY",
 }
 
 
